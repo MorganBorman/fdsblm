@@ -1,3 +1,6 @@
+database.conf
+src/cube2crypto.so
+
 *.py[cod]
 
 # C extensions
