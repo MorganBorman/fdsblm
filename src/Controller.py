@@ -121,6 +121,13 @@ class Controller(object):
                 IpName.record(name, ip)
             except (IndexError, ValueError):
                 return
+                
+        elif data[0] == "disconnected":
+            try:
+                uid = int(data[1])
+                self.authentication_model.set_offline(client, uid)
+            except (IndexError, ValueError):
+                return
     
     def on_disconnect(self, client):
         self.servers_model.remove_server(client)
@@ -130,14 +137,14 @@ class Controller(object):
         message = "chalauth %s %s\n" % (authid, challenge)
         client.send(message)
     
-    def on_auth_accept(self, client, authid, display_name, groups):
+    def on_auth_accept(self, client, authid, uid, display_name, groups):
         def remove_spaces(string):
             return string.translate(None, ' ')
             
         display_name = remove_spaces(display_name)
         groups = map(remove_spaces, groups)
         
-        message = "succauth {} {} {}\n".format(authid, display_name, ' '.join(groups))
+        message = "succauth {} {} {} {}\n".format(authid, uid, display_name, ' '.join(groups))
         client.send(message)
     
     def on_auth_deny(self, client, authid):

@@ -14,15 +14,16 @@ class Member(database_manager.Base):
     additional_groups = Column(String(255))
     
     @property
+    def ingame(self):
+        return Theme.getvariable(self.id_member, "cust_ingame")
+        
+    @ingame.setter
+    def ingame(self, value):
+        Theme.setvariable(self.id_member, "cust_ingame", value)
+    
+    @property
     def public_auth_key(self):
         return Theme.getvariable(self.id_member, "cust_public")
-        """
-        try:
-            with Session() as session:
-                return session.query(Theme.value).filter(Theme.id_member==self.id_member).filter(Theme.variable=="cust_public").scalar()
-        except NoResultFound:
-            return None
-        """
         
     @public_auth_key.setter
     def public_auth_key(self, value):

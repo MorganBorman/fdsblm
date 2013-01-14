@@ -18,6 +18,12 @@ class AuthenticationModel(SignalObject):
         #value = {'member': Member, 'answer': answer}
         self.pending_auths = {}
         
+    def set_offline(self, client, uid):
+        member = Member.by_member_id(uid)
+        
+        if member is not None:
+            member.ingame = "offline"
+        
     def request_authentication(self, client, authid, member_name):
         
         if "@" in member_name:
@@ -55,8 +61,12 @@ class AuthenticationModel(SignalObject):
         if answer != pending_auth['answer']:
             self.deny.emit(client, authid)
         else:
+        
+            member.ingame = "online"
+        
             self.accept.emit(client, 
                              authid, 
-                             member.real_name,
+                             member.id_member, 
+                             member.real_name, 
                              member.group_list)
 
