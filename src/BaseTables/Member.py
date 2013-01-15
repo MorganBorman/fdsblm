@@ -64,7 +64,7 @@ class Member(database_manager.Base):
     @property
     def groups(self):
         group_ids = [self.id_group]
-        group_ids.extend(map(int, self.additional_groups.split(',')))
+        group_ids.extend(map(int, filter(lambda g: g != "", self.additional_groups.split(','))))
         
         try:
             with Session() as session:
