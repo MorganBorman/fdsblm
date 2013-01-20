@@ -1,6 +1,7 @@
 from AuthenticationModel import AuthenticationModel
 from ServersModel import ServersModel
 from SocketManager import SocketManager
+from MumbleTeamConnection import MumbleTeamConnection
 
 from BaseTables import IpName
 
@@ -28,6 +29,7 @@ class Controller(object):
         self.authentication_model = AuthenticationModel()
         self.servers_model = ServersModel()
         self.socket_manager = SocketManager(master_ip, master_port, max_clients)
+        self.mumbleteam_connection = MumbleTeamConnection("localhost", 28783)
         
         #######################################
         #connect up our signals
@@ -63,6 +65,7 @@ class Controller(object):
         
     def on_connect(self, client):
         print "client connected %s" % str(client.address)
+        
     
     def on_request(self, client, data):
         print "client request %s:" % str(client.address), data
@@ -128,6 +131,12 @@ class Controller(object):
                 self.authentication_model.set_offline(client, uid)
             except (IndexError, ValueError):
                 return
+                
+        elif data[0] == "changeteam":
+            uid = int(data[1])
+            server = data[2]
+            team = data[3]
+            self.mumbleteam_connection.changeteam(uid, server, team)
     
     def on_disconnect(self, client):
         self.servers_model.remove_server(client)
