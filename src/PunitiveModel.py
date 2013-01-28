@@ -75,7 +75,7 @@ class PunitiveModel(SignalObject):
                 self.remove.emit(punitive_effect.id)
                 
             # Look for those effects which have been updated and send out update signals
-            updated_punitive_effects = session.query(PunitiveEffect).filter(PunitiveEffect.updated).all()
+            updated_punitive_effects = session.query(PunitiveEffect).filter(PunitiveEffect.updated==True).all()
             
             for punitive_effect in updated_punitive_effects:
                 punitive_effect.updated = False
