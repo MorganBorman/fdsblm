@@ -2,6 +2,7 @@ from AuthenticationModel import AuthenticationModel
 from ServersModel import ServersModel
 from SocketManager import SocketManager
 from MumbleTeamConnection import MumbleTeamConnection
+from PunitiveModel import PunitiveModel
 
 from BaseTables import IpName
 
@@ -30,6 +31,7 @@ class Controller(object):
         self.servers_model = ServersModel()
         self.socket_manager = SocketManager(master_ip, master_port, max_clients)
         self.mumbleteam_connection = MumbleTeamConnection("localhost", 28783)
+        self.punitive_model = PunitiveModel()
         
         #######################################
         #connect up our signals
@@ -38,6 +40,7 @@ class Controller(object):
         #SocketManager
         
         self.socket_manager.started.connect(self.on_started)
+        self.socket_manager.update.connect(self.on_update)
         self.socket_manager.stopped.connect(self.on_stopped)
         self.socket_manager.connect.connect(self.on_connect)
         self.socket_manager.request.connect(self.on_request)
@@ -49,6 +52,11 @@ class Controller(object):
         self.authentication_model.accept.connect(self.on_auth_accept)
         self.authentication_model.deny.connect(self.on_auth_deny)
         
+        #PunitiveModel
+        
+        self.punitive_model.update.connect(self.on_effect_update)
+        self.punitive_model.remove.connect(self.on_effect_remove)
+        
         #######################################
         #start up the socket_manager
         #######################################
@@ -59,6 +67,9 @@ class Controller(object):
         print "Master server started."
         print "Listening on (%s, %s)." %(str(ip), str(port))
         print "Press Ctrl-c to exit."
+        
+    def on_update(self):
+        self.punitive_model.refresh()
         
     def on_stopped(self):
         print "\nMaster server stopped."
@@ -77,11 +88,12 @@ class Controller(object):
             servers_list = self.servers_model.get_server_list()
             client.send(servers_list)
         elif data[0] == "regserv":
-            try:
-                port = int(data[1])
-                self.servers_model.register_server(client, port)
-            except (IndexError, ValueError):
-                return
+            #try:
+            port = int(data[1])
+            self.servers_model.register_server(client, port)
+            client.send(self.punitive_model.get_effect_list())
+            #except (IndexError, ValueError):
+            #    return
         elif data[0] == "reqauth":
             try:
                 authid = int(data[1])
@@ -137,6 +149,38 @@ class Controller(object):
             server = data[2]
             team = data[3]
             self.mumbleteam_connection.changeteam(uid, server, team)
+            
+        elif data[0] == "addeffect":
+            effect_type = data[1]
+            
+            target_id = int(data[2])
+            target_name = data[3]
+            target_ip = int(data[4])
+            target_mask = int(data[5])
+            
+            master_id = int(data[6])
+            master_name = data[7]
+            master_ip = int(data[8])
+            
+            expiry_time = int(data[9])
+            
+            reason = " ".join(data[10:])
+            
+            self.punitive_model.create_effect(client, 
+                                              effect_type, 
+                                              target_id, 
+                                              target_name, 
+                                              target_ip, 
+                                              target_mask, 
+                                              master_id, 
+                                              master_name, 
+                                              master_ip, 
+                                              expiry_time, 
+                                              reason)
+            
+        elif data[0] == "deleffect":
+            effect_id = int(data[1])
+            self.punitive_model.remove_effect(effect_id)
     
     def on_disconnect(self, client):
         self.servers_model.remove_server(client)
@@ -159,4 +203,12 @@ class Controller(object):
     def on_auth_deny(self, client, authid):
         message = "failauth {}\n".format(authid)
         client.send(message)
+        
+    def on_effect_update(self, effect_id, effect_type, target_ip, target_mask, reason):
+        message = "effectupdate {} {} {} {} {}\n".format(effect_id, effect_type, target_ip, target_mask, reason)
+        self.servers_model.broadcast(message)
+        
+    def on_effect_remove(self, effect_id):
+        message = "effectremove {}\n".format(effect_id)
+        self.servers_model.broadcast(message)
         

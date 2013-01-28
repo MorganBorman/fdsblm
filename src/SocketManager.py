@@ -65,7 +65,7 @@ class SocketManager(SignalObject):
         self.master_port = master_port
     
         self.running = True
-        self.interval = 3800
+        self.interval = 10
         self.next_update = time.time() + self.interval
         
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
