@@ -1,20 +1,14 @@
-import CategoryConfig, sqlalchemy
+import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 from contextlib import contextmanager
+from config import config_object
 
 def get_database_uri():
-    config_path = "./"
-    config_category = "database"
-    config_extension = ".conf"
-    
-    config_object = CategoryConfig.CategoryConfig(config_path, config_category, config_extension)
-    
     #place the database by default in the instances directory
     default_db_path = "sqlite:///./pyCube2Master.db"
     
     doc = 'Sqlalchemy uri string indicating the database connection parameters.'
     return config_object.getOption('database.uri', default_db_path, doc)
-
 
 class DatabaseManager():
     def __init__(self):

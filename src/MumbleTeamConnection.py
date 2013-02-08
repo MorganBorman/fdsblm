@@ -1,3 +1,4 @@
+import sys
 import socket
 
 class MumbleTeamConnection(object):
@@ -10,7 +11,7 @@ class MumbleTeamConnection(object):
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.connect((self.hostname, self.port))
-            print "Established connection to mumble teams daemon."
+            sys.stderr.write("Established connection to mumble teams daemon.\n")
         except socket.error:
             pass
     
@@ -20,18 +21,16 @@ class MumbleTeamConnection(object):
             try:
                 result = self.socket.sendall(msg)
                 if result is None:
-                    print "Successfully sent message: {}".format(repr(msg))
+                    sys.stderr.write("Successfully sent message: {}\n".format(repr(msg)))
                     return
-                else:
-                    print "Got non None response from socket.sendall:", repr(result)
             except socket.error:
-                print "Failed to send message to mumble autoteam server. trying again..."
-                print "Reconnecting..."
+                sys.stderr.write("Failed to send message to mumble autoteam server. trying again...\n")
+                sys.stderr.write("Reconnecting...\n")
                 self.connect()
                     
             tries += 1
             
-        print "Failed to send message to mumble autoteam server. Could not succeed in 3 tries."
+        sys.stderr.write("Failed to send message to mumble autoteam server. Could not succeed in 3 tries.\n")
     
     def changeteam(self, uid, server_name, team_name):
         self.send("changeteam {} {} {}\n".format(uid, server_name, team_name))

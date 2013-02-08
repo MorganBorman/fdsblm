@@ -27,12 +27,15 @@ def format_date(epoch_seconds):
 class Controller(object):
     commands = {}
     
-    def __init__(self, master_ip, master_port, max_clients):
+    def __init__(self, master_ip, master_port, max_clients, mumbleteam_enable, mumbleteam_ip, mumbleteam_port):
     
         self.authentication_model = AuthenticationModel()
         self.servers_model = ServersModel()
         self.socket_manager = SocketManager(master_ip, master_port, max_clients)
-        self.mumbleteam_connection = MumbleTeamConnection("localhost", 28783)
+        if mumbleteam_enable:
+            self.mumbleteam_connection = MumbleTeamConnection(mumbleteam_ip, mumbleteam_port)
+        else:
+            self.mumbleteam_connection = None
         self.punitive_model = PunitiveModel()
         
         #######################################
@@ -66,21 +69,21 @@ class Controller(object):
         self.socket_manager.run()
         
     def on_started(self, ip, port):
-        print "Master server started."
-        print "Listening on (%s, %s)." %(str(ip), str(port))
-        print "Press Ctrl-c to exit."
+        sys.stderr.write("Master server started.\n")
+        sys.stderr.write("Listening on ({}, {}).\n".format(ip, port))
+        sys.stderr.write("Press Ctrl-c to exit.\n")
         
     def on_update(self):
         self.punitive_model.refresh()
         
     def on_stopped(self):
-        print "\nMaster server stopped."
+        sys.stderr.write("\nMaster server stopped.\n")
         
     def on_connect(self, client):
-        print "client connected %s" % str(client.address)
+        sys.stderr.write("client connected {}.\n".format(client.address))
         
     def on_request(self, client, data):
-        print "client command %s:" % str(client.address), data
+        sys.stderr.write("client command {}: {}".format(client.address, repr(data)))
         
         split_data = data.split(None, 1)
         split_data_len = len(split_data)
@@ -104,7 +107,7 @@ class Controller(object):
     
     def on_disconnect(self, client):
         self.servers_model.remove_server(client)
-        print "client disconnected %s" % str(client.address)
+        sys.stderr.write("client disconnected {}.\n".format(client.address))
     
     def on_auth_challenge(self, client, authid, challenge):
         message = "chalauth %s %s\n" % (authid, challenge)
@@ -210,7 +213,8 @@ def cmd_changeteam(self, client, arg_string):
     uid = int(args[0])
     server = args[1]
     team = args[2]
-    self.mumbleteam_connection.changeteam(uid, server, team)
+    if self.mumbleteam_connection is not None:
+        self.mumbleteam_connection.changeteam(uid, server, team)
 
 @command("addeffect")
 def cmd_addeffect(self, client, arg_string):
