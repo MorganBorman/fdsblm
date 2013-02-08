@@ -21,6 +21,7 @@ class PunitiveModel(SignalObject):
     def create_effect(self, server, effect_type, target_id, target_name, target_ip, target_mask, 
                       master_id, master_name, master_ip, expiry_time, reason):
         """Create an entry for a new specified punitive effect."""
+        print "create_effect(server, effect_type = {}, target_id = {}, target_name = {}, target_ip = {}, target_mask = {}, master_id = {}, master_name = {}, master_ip = {}, expiry_time = {}, reason = {})".format(effect_type, target_id, target_name, target_ip, target_mask, master_id, master_name, master_ip, expiry_time, reason)
         with Session() as session:
             effect = PunitiveEffect(effect_type, 
                                     target_id, 

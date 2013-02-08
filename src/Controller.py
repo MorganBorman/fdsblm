@@ -6,7 +6,7 @@ from PunitiveModel import PunitiveModel
 
 from BaseTables import IpName
 
-import time, datetime
+import time, datetime, sys, traceback
 
 def cs_escape(string):
     """Replace any double quotes with single quotes."""
@@ -25,6 +25,8 @@ def format_date(epoch_seconds):
         return date.strftime("%H:%M")
 
 class Controller(object):
+    commands = {}
+    
     def __init__(self, master_ip, master_port, max_clients):
     
         self.authentication_model = AuthenticationModel()
@@ -77,110 +79,28 @@ class Controller(object):
     def on_connect(self, client):
         print "client connected %s" % str(client.address)
         
-    
     def on_request(self, client, data):
-        print "client request %s:" % str(client.address), data
+        print "client command %s:" % str(client.address), data
         
-        if len(data) <= 0:
+        split_data = data.split(None, 1)
+        split_data_len = len(split_data)
+        
+        if split_data_len < 1:
             return
-        
-        if data[0] == "list":
-            servers_list = self.servers_model.get_server_list()
-            client.send(servers_list)
-        elif data[0] == "regserv":
-            #try:
-            port = int(data[1])
-            self.servers_model.register_server(client, port)
-            client.send(self.punitive_model.get_effect_list())
-            #except (IndexError, ValueError):
-            #    return
-        elif data[0] == "reqauth":
+        elif split_data_len < 2:
+            command = split_data[0]
+            arg_string = ""
+        else:
+            command, arg_string = split_data
+            
+        if command in self.commands:
             try:
-                authid = int(data[1])
-                member_name = data[2]
-                self.authentication_model.request_authentication(client, authid, member_name)
-            except (IndexError, ValueError):
-                return
-        elif data[0] == "confauth":
-            try:
-                authid = int(data[1])
-                response = data[2]
-                self.authentication_model.confirm_authentication(client, authid, response)
-            except (IndexError, ValueError):
-                return
-        elif data[0] == "names":
-            try:
-                reqid = int(data[1])
-                ip = int(data[2])
-                mask = int(data[3])
-                
-                result_string_parts = []
-                
-                results = IpName.fetch(ip, mask)
-                
-                for result in results:
-                    result_string_parts.extend([cs_escape(result.name), format_date(result.date), result.count])
-                    
-                result_string_parts = map(str, result_string_parts)
-                    
-                result_string = '" "'.join(result_string_parts)
-                    
-                client.send("names {} \"{}\"\n".format(reqid, result_string))
-            except (IndexError, ValueError):
-                return
+                self.commands[command](self, client, arg_string)
+            except:
+                exceptionType, exceptionValue, exceptionTraceback = sys.exc_info()    #@UnusedVariable
+                sys.stderr.write("Uncaught exception occurred processing master client command.\n")
+                sys.stderr.write(traceback.format_exc())
             
-        elif data[0] == "recname":
-            try:
-                name = data[1]
-                ip = int(data[2])
-                IpName.record(name, ip)
-            except (IndexError, ValueError):
-                return
-                
-        elif data[0] == "disconnected":
-            try:
-                uid = int(data[1])
-                self.authentication_model.set_offline(client, uid)
-            except (IndexError, ValueError):
-                return
-                
-        elif data[0] == "changeteam":
-            uid = int(data[1])
-            server = data[2]
-            team = data[3]
-            self.mumbleteam_connection.changeteam(uid, server, team)
-            
-        elif data[0] == "addeffect":
-            effect_type = data[1]
-            
-            target_id = int(data[2])
-            target_name = data[3]
-            target_ip = int(data[4])
-            target_mask = int(data[5])
-            
-            master_id = int(data[6])
-            master_name = data[7]
-            master_ip = int(data[8])
-            
-            expiry_time = int(data[9])
-            
-            reason = " ".join(data[10:])
-            
-            self.punitive_model.create_effect(client, 
-                                              effect_type, 
-                                              target_id, 
-                                              target_name, 
-                                              target_ip, 
-                                              target_mask, 
-                                              master_id, 
-                                              master_name, 
-                                              master_ip, 
-                                              expiry_time, 
-                                              reason)
-            
-        elif data[0] == "deleffect":
-            effect_id = int(data[1])
-            self.punitive_model.remove_effect(effect_id)
     
     def on_disconnect(self, client):
         self.servers_model.remove_server(client)
@@ -212,3 +132,120 @@ class Controller(object):
         message = "effectremove {}\n".format(effect_id)
         self.servers_model.broadcast(message)
         
+def command(command_name):
+    def dec(command_method):
+        Controller.commands[command_name] = command_method
+        return command_method
+    return dec
+        
+@command("list")
+def cmd_list(self, client, arg_string):
+    servers_list = self.servers_model.get_server_list()
+    client.send(servers_list)
+    
+@command("regserv")
+def cmd_regserv(self, client, arg_string):
+    args = arg_string.split()
+    
+    port = int(args[0])
+    self.servers_model.register_server(client, port)
+    client.send(self.punitive_model.get_effect_list())
+    
+@command("reqauth")
+def cmd_reqauth(self, client, arg_string):
+    args = arg_string.split()
+    
+    authid = int(args[0])
+    member_name = args[1]
+    self.authentication_model.request_authentication(client, authid, member_name)
+    
+@command("confauth")
+def cmd_confauth(self, client, arg_string):
+    args = arg_string.split()
+    
+    authid = int(args[0])
+    response = args[1]
+    self.authentication_model.confirm_authentication(client, authid, response)
+    
+@command("names")
+def cmd_names(self, client, arg_string):
+    args = arg_string.split()
+    
+    reqid = int(args[0])
+    ip = int(args[1])
+    mask = int(args[2])
+    
+    result_string_parts = []
+    
+    results = IpName.fetch(ip, mask)
+    
+    for result in results:
+        result_string_parts.extend([cs_escape(result.name), format_date(result.date), result.count])
+        
+    result_string_parts = map(str, result_string_parts)
+        
+    result_string = '" "'.join(result_string_parts)
+        
+    client.send("names {} \"{}\"\n".format(reqid, result_string))
+    
+@command("recname")
+def cmd_recname(self, client, arg_string):
+    args = arg_string.split()
+    
+    name = args[0]
+    ip = int(args[1])
+    IpName.record(name, ip)
+
+@command("disconnected")
+def cmd_disconnected(self, client, arg_string):
+    args = arg_string.split()
+    
+    uid = int(args[1])
+    self.authentication_model.set_offline(client, uid)
+
+@command("changeteam")
+def cmd_changeteam(self, client, arg_string):
+    args = arg_string.split()
+    
+    uid = int(args[0])
+    server = args[1]
+    team = args[2]
+    self.mumbleteam_connection.changeteam(uid, server, team)
+
+@command("addeffect")
+def cmd_addeffect(self, client, arg_string):
+    args = arg_string.split(" ", 9)
+
+    effect_type = args[0]
+    
+    target_id = int(args[1])
+    target_name = args[2]
+    target_ip = int(args[3])
+    target_mask = int(args[4])
+    
+    master_id = int(args[5])
+    master_name = args[6]
+    master_ip = int(args[7])
+    
+    expiry_time = int(args[8])
+    
+    reason = args[9]
+    
+    self.punitive_model.create_effect(client, 
+                                      effect_type, 
+                                      target_id, 
+                                      target_name, 
+                                      target_ip, 
+                                      target_mask, 
+                                      master_id, 
+                                      master_name, 
+                                      master_ip, 
+                                      expiry_time, 
+                                      reason)
+    
+@command("deleffect")
+def cmd_deleffect(self, client, arg_string):
+    args = arg_string.split()
+
+    effect_id = int(args[0])
+    self.punitive_model.remove_effect(effect_id)

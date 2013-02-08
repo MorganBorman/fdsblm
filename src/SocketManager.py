@@ -44,7 +44,6 @@ class MasterClient(object):
             next_nl_pos = self.buffer.find("\n")
         
     def handle_datum(self, datum):
-        datum = datum.split()
         self.socket_manager.request.emit(self, datum)
 
 class SocketManager(SignalObject):
