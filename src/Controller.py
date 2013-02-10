@@ -83,7 +83,7 @@ class Controller(object):
         sys.stderr.write("client connected {}.\n".format(client.address))
         
     def on_request(self, client, data):
-        sys.stderr.write("client command {}: {}".format(client.address, repr(data)))
+        sys.stderr.write("client command {}: {}\n".format(client.address, repr(data)))
         
         split_data = data.split(None, 1)
         split_data_len = len(split_data)
@@ -203,16 +203,23 @@ def cmd_recname(self, client, arg_string):
 def cmd_disconnected(self, client, arg_string):
     args = arg_string.split()
     
-    uid = int(args[1])
+    uid = int(args[0])
     self.authentication_model.set_offline(client, uid)
 
 @command("changeteam")
 def cmd_changeteam(self, client, arg_string):
-    args = arg_string.split()
+    args = arg_string.split(' ')
     
     uid = int(args[0])
     server = args[1]
     team = args[2]
+    
+    if server == "":
+        server = "UnknownServer"
+        
+    if team == "":
+        team = "UnknownTeam"
+    
     if self.mumbleteam_connection is not None:
         self.mumbleteam_connection.changeteam(uid, server, team)
 
