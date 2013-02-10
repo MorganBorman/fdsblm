@@ -193,7 +193,7 @@ def cmd_names(self, client, arg_string):
     
 @command("recname")
 def cmd_recname(self, client, arg_string):
-    args = arg_string.split()
+    args = arg_string.rsplit(' ', 1)
     
     name = args[0]
     ip = int(args[1])
