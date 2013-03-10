@@ -2,6 +2,7 @@ from AuthenticationModel import AuthenticationModel
 from ServersModel import ServersModel
 from SocketManager import SocketManager
 from MumbleTeamConnection import MumbleTeamConnection
+from IrcBotConnection import IrcBotConnection
 from PunitiveModel import PunitiveModel
 
 from BaseTables import IpName
@@ -27,7 +28,7 @@ def format_date(epoch_seconds):
 class Controller(object):
     commands = {}
     
-    def __init__(self, master_ip, master_port, max_clients, mumbleteam_enable, mumbleteam_ip, mumbleteam_port):
+    def __init__(self, master_ip, master_port, max_clients, mumbleteam_enable, mumbleteam_ip, mumbleteam_port, ircbot_enable, ircbot_ip, ircbot_port):
     
         self.authentication_model = AuthenticationModel()
         self.servers_model = ServersModel()
@@ -36,6 +37,12 @@ class Controller(object):
             self.mumbleteam_connection = MumbleTeamConnection(mumbleteam_ip, mumbleteam_port)
         else:
             self.mumbleteam_connection = None
+            
+        if ircbot_enable:
+            self.ircbot_connection = IrcBotConnection(ircbot_ip, ircbot_port)
+        else:
+            self.ircbot_connection = None
+            
         self.punitive_model = PunitiveModel()
         
         #######################################
@@ -260,3 +267,17 @@ def cmd_deleffect(self, client, arg_string):
 
     effect_id = int(args[0])
     self.punitive_model.remove_effect(effect_id)
+    
+@command("complaint")
+def cmd_complaint(self, client, arg_string):
+    args = arg_string.split(None, 5)
+    
+    server_name = args[0]
+    complainer_name = args[1]
+    complainer_ip = int(args[2])
+    complainee_name = args[3]
+    complainee_ip = int(args[4])
+    issue = args[5]
+    
+    if self.ircbot_connection is not None:
+        self.ircbot_connection.complaint(server_name, complainer_ip, complainer_name, complainee_ip, complainee_name, issue)
