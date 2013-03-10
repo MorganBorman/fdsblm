@@ -74,14 +74,14 @@ class PunitiveModel(SignalObject):
             for punitive_effect in expired_punitive_effects:
                 punitive_effect.expired = True
                 self.remove.emit(punitive_effect.id)
-                self.effect_list_dirty = False
+                self.effect_list_dirty = True
                 
             # Look for those effects which have been updated and send out update signals
             updated_punitive_effects = session.query(PunitiveEffect).filter(PunitiveEffect.updated==True).all()
             
             for punitive_effect in updated_punitive_effects:
                 punitive_effect.updated = False
-                self.effect_list_dirty = False
+                self.effect_list_dirty = True
                 if punitive_effect.expired:
                     self.remove.emit(punitive_effect.id)
                 else:
