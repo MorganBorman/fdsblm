@@ -273,10 +273,10 @@ def cmd_complaint(self, client, arg_string):
     args = arg_string.split(None, 5)
     
     server_name = args[0]
-    complainer_name = args[1]
-    complainer_ip = int(args[2])
-    complainee_name = args[3]
-    complainee_ip = int(args[4])
+    complainee_name = args[1]
+    complainee_ip = int(args[2])
+    complainer_name = args[3]
+    complainer_ip = int(args[4])
     issue = args[5]
     
     if self.ircbot_connection is not None:
