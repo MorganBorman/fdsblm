@@ -6,7 +6,7 @@ import datetime, time
 class Demo(database_manager.Base):
     __tablename__ = table_names['Demo']
     id = Column(Integer, Sequence(__tablename__+'_id_seq'), primary_key=True)
-    filename = Column(String(64), nullable=False)
+    filename = Column(String(255), nullable=False)
     server = Column(String(32), nullable=False)
     recorded_time = Column(DateTime, nullable=False)
     mode_name = Column(String(32))
