@@ -33,9 +33,9 @@ class MasterClient(object):
             return
         self.buffer += data
         
-        if self.buffer_limit != -1 and len(self.buffer) > self.buffer_limit:
-            self.disconnect()
-            return
+        #if self.buffer_limit != -1 and len(self.buffer) > self.buffer_limit:
+        #    self.disconnect()
+        #    return
         
         next_nl_pos = self.buffer.find("\n")
         while next_nl_pos != -1:

@@ -5,7 +5,7 @@ from MumbleTeamConnection import MumbleTeamConnection
 from IrcBotConnection import IrcBotConnection
 from PunitiveModel import PunitiveModel
 
-from BaseTables import IpName
+from BaseTables import IpName, Demo, DemoTag
 
 import time, datetime, sys, traceback
 
@@ -281,3 +281,29 @@ def cmd_complaint(self, client, arg_string):
     
     if self.ircbot_connection is not None:
         self.ircbot_connection.complaint(server_name, complainer_ip, complainer_name, complainee_ip, complainee_name, issue)
+        
+@command("demorecorded")
+def cmd_demorecorded(self, client, arg_string):
+    args = arg_string.split('|', 5)
+    
+    filename = args[0]
+    server = args[1]
+    mode_name = args[2]
+    map_name = args[3]
+    
+    demo_id = Demo.add_demo(filename, server, mode_name, map_name)
+    
+    user_ids = map(int, args[4].split(','))
+    if len(args) > 5:
+        tags = args[5].split(',')
+    else:
+        tags = []
+    tags = map(lambda t: t.split(':', 1), tags)
+    
+    for user_id in user_ids:
+        DemoTag.add_tag(demo_id, user_id, "participant")
+        
+    for tag in tags:
+        user_id, tag = tag
+        
+        DemoTag.add_tag(demo_id, int(user_id), tag)
